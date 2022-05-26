@@ -1,0 +1,33 @@
+{
+  "name": "projeto-generico-api",
+  "version": "1.0.0",
+  "description": "Projeto Generico API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fmlimao/projeto-generico-api.git"
+  },
+  "keywords": [],
+  "author": "Leandro Macedo <fmlimao@gmail.com> (http://github.com/fmlimao)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fmlimao/projeto-generico-api/issues"
+  },
+  "homepage": "https://github.com/fmlimao/projeto-generico-api#readme",
+  "devDependencies": {
+    "standard": "^17.0.0"
+  },
+  "dependencies": {
+    "dotenv-safe": "^8.2.0",
+    "express": "^4.18.1",
+    "fm-express-error-handler": "^1.0.0",
+    "fm-json-response": "^1.2.1",
+    "fm-validator": "^1.1.1",
+    "knex": "^2.1.0",
+    "moment": "^2.29.3",
+    "mysql": "^2.18.1"
+  }
+}
