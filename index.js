@@ -29,8 +29,11 @@ app.delete('/tenants/:tenantId', /* verifyAuthMiddleware,  */getTenant, require(
 // Inquilino - Usuários
 app.get('/tenants/:tenantId/users', /* verifyAuthMiddleware,  */getTenant, require('./src/controllers/tenants/users/list'))
 
+// Inquilino - Pessoas
+app.get('/tenants/:tenantId/people', /* verifyAuthMiddleware,  */getTenant, require('./src/controllers/tenants/people/list'))
+
 app.use(require('./src/middlewares/error-404'))
-// app.use(require('./src/middlewares/error-500'))
+app.use(require('./src/middlewares/error-500'))
 
 const { PORT = 3000 } = process.env
 

@@ -1,30 +1,32 @@
 const db = require('../database/conn')
-const filters = require('../filters/tenant-users')
+const filters = require('../filters/tenant-people')
 const generateOptions = require('../helpers/generate-options')
 const makeObj = require('../helpers/make-obj')
 const JsonReturn = require('fm-json-response')
 
 const orderColumns = {
-  'user.id': 'u.user_id',
-  'user.email': 'u.email',
-  'user.active': 'u.active',
-  'user.createdAt': 't.created_at',
-  'user.alteredAt': 't.altered_at',
   'person.id': 'p.person_id',
-  'person.name': 'p.name'
+  'person.name': 'p.name',
+  'person.birthDate': 'p.brith_date',
+  'person.cpfCnpj': 'p.cpf_cnpj',
+  'person.rgIe': 'p.rg_ie',
+  'person.active': 'p.active',
+  'person.createdAt': 'p.created_at',
+  'person.alteredAt': 'p.altered_at'
 }
 
 const viewColumns = {
-  userId: 'user.id',
-  userEmail: 'user.email',
-  userActive: 'user.active',
-  userCreatedAt: 'user.createdAt',
-  userAlteredAt: 'user.clteredAt',
   personId: 'person.id',
-  personName: 'person.name'
+  personName: 'person.name',
+  personBirthDate: 'person.birthDate',
+  personCpfCnpj: 'person.cpfCnpj',
+  personRgIe: 'person.rgIe',
+  personActive: 'person.active',
+  personCreatedAt: 'person.createdAt',
+  personAlteredAt: 'person.alteredAt'
 }
 
-class TenantUsersRepository {
+class TenantPeopleRepository {
   static async findAll (tenantId = null, { filter = {} } = {}) {
     // Essa promise serve para recuperar os filtros da busca
     return new Promise(resolve => {
@@ -33,13 +35,14 @@ class TenantUsersRepository {
       const whereCriteria = []
       const whereValues = {}
 
-      filters.filterUserId(filter, whereCriteria, whereValues)
-      filters.filterUserEmail(filter, whereCriteria, whereValues)
-      filters.filterUserActive(filter, whereCriteria, whereValues)
-      filters.filterUserCreatedAt(filter, whereCriteria, whereValues)
-      filters.filterUserAlteredAt(filter, whereCriteria, whereValues)
       filters.filterPersonId(filter, whereCriteria, whereValues)
       filters.filterPersonName(filter, whereCriteria, whereValues)
+      filters.filterPeopleBirthDate(filter, whereCriteria, whereValues)
+      filters.filterPersonCpfCnpj(filter, whereCriteria, whereValues)
+      filters.filterPeopleRgIe(filter, whereCriteria, whereValues)
+      filters.filterPeopleActive(filter, whereCriteria, whereValues)
+      filters.filterPeopleCreatedAt(filter, whereCriteria, whereValues)
+      filters.filterPeopleAlteredAt(filter, whereCriteria, whereValues)
       filters.filterSearch(queryOptions.search, whereCriteria, whereValues)
 
       queryOptions.orderByColumn = filters.orderByColumn(queryOptions.orderByColumn, orderColumns, 'p.name')
@@ -60,12 +63,9 @@ class TenantUsersRepository {
         }
 
         const query = `
-          SELECT COUNT(u.user_id) AS total
+          SELECT COUNT(p.person_id) AS total
           FROM tenants t
-          INNER JOIN tenants_users tu ON (t.tenant_id = tu.tenant_id AND tu.deleted_at IS NULL)
-          INNER JOIN users u ON (tu.user_id = u.user_id AND u.deleted_at IS NULL)
-          INNER JOIN people p ON (u.person_id = p.person_id AND p.deleted_at IS NULL)
-          INNER JOIN person_emails pe ON (p.person_id = pe.person_id AND u.person_email_id = pe.person_email_id AND pe.deleted_at IS NULL)
+          INNER JOIN people p ON (t.tenant_id = p.tenant_id AND p.deleted_at IS NULL)
           WHERE t.deleted_at IS NULL
           AND t.tenant_id = :tenantId;
         `
@@ -81,12 +81,9 @@ class TenantUsersRepository {
         }, next.whereValues)
 
         const query = `
-          SELECT COUNT(u.user_id) AS total
+        SELECT COUNT(p.person_id) AS total
           FROM tenants t
-          INNER JOIN tenants_users tu ON (t.tenant_id = tu.tenant_id AND tu.deleted_at IS NULL)
-          INNER JOIN users u ON (tu.user_id = u.user_id AND u.deleted_at IS NULL)
-          INNER JOIN people p ON (u.person_id = p.person_id AND p.deleted_at IS NULL)
-          INNER JOIN person_emails pe ON (p.person_id = pe.person_id AND u.person_email_id = pe.person_email_id AND pe.deleted_at IS NULL)
+          INNER JOIN people p ON (t.tenant_id = p.tenant_id AND p.deleted_at IS NULL)
           WHERE t.deleted_at IS NULL
           AND t.tenant_id = :tenantId
           ${next.whereCriteria.length ? ` AND (${next.whereCriteria.join(' AND ')})` : ''}
@@ -104,18 +101,16 @@ class TenantUsersRepository {
 
         const query = `
           SELECT
-            u.user_id AS userId,
             p.person_id AS personId,
             p.name AS personName,
-            pe.email AS userEmail,
-            u.active AS userActive,
-            u.created_at AS userCreatedAt,
-            u.altered_at AS userAlteredAt
+            p.birth_date AS personBirthDate,
+            p.cpf_cnpj AS personCpfCnpj,
+            p.rg_ie AS personRgIe,
+            p.active AS personActive,
+            p.created_at AS personCreatedAt,
+            p.altered_at AS personAlteredAt
           FROM tenants t
-          INNER JOIN tenants_users tu ON (t.tenant_id = tu.tenant_id AND tu.deleted_at IS NULL)
-          INNER JOIN users u ON (tu.user_id = u.user_id AND u.deleted_at IS NULL)
-          INNER JOIN people p ON (u.person_id = p.person_id AND p.deleted_at IS NULL)
-          INNER JOIN person_emails pe ON (p.person_id = pe.person_id AND u.person_email_id = pe.person_email_id AND pe.deleted_at IS NULL)
+          INNER JOIN people p ON (t.tenant_id = p.tenant_id AND p.deleted_at IS NULL)
           WHERE t.deleted_at IS NULL
           AND t.tenant_id = :tenantId
           ${next.whereCriteria.length ? ` AND (${next.whereCriteria.join(' AND ')})` : ''}
@@ -178,4 +173,4 @@ class TenantUsersRepository {
   }
 }
 
-module.exports = TenantUsersRepository
+module.exports = TenantPeopleRepository

@@ -1,23 +1,24 @@
 const db = require('../database/conn')
 const filters = require('../filters/tenants')
 const generateOptions = require('../helpers/generate-options')
+const makeObj = require('../helpers/make-obj')
 const JsonReturn = require('fm-json-response')
 const validator = require('fm-validator')
 
 const orderColumns = {
-  tenantId: 't.tenant_id',
-  tenantName: 't.name',
-  tenantActive: 't.active',
-  tenantCreatedAt: 't.created_at',
-  tenantAlteredAt: 't.altered_at'
+  'tenant.id': 't.tenant_id',
+  'tenant.name': 't.name',
+  'tenant.active': 't.active',
+  'tenant.createdAt': 't.created_at',
+  'tenant.alteredAt': 't.altered_at'
 }
 
 const viewColumns = {
-  tenantId: 'tenantId',
-  tenantName: 'tenantName',
-  tenantActive: 'tenantActive',
-  tenantCreatedAt: 'tenantCreatedAt',
-  tenantAlteredAt: 'tenantAlteredAt'
+  tenantId: 'tenant.id',
+  tenantName: 'tenant.name',
+  tenantActive: 'tenant.active',
+  tenantCreatedAt: 'tenant.createdAt',
+  tenantAlteredAt: 'tenant.alteredAt'
 }
 
 class TenantsRepository {
@@ -33,6 +34,7 @@ class TenantsRepository {
       filters.filterTenantName(filter, whereCriteria, whereValues)
       filters.filterTenantActive(filter, whereCriteria, whereValues)
       filters.filterTenantCreatedAt(filter, whereCriteria, whereValues)
+      filters.filterTenantAlteredAt(filter, whereCriteria, whereValues)
       filters.filterSearch(queryOptions.search, whereCriteria, whereValues)
 
       queryOptions.orderByColumn = filters.orderByColumn(queryOptions.orderByColumn, orderColumns, 't.name')
@@ -93,15 +95,15 @@ class TenantsRepository {
 
         return next
       })
+      // Essa promise formata os dados ou renomeia as colunas
       .then(next => {
-        // Essa promise formata os dados ou renomeia as colunas
-
         next.data = next.data.map(item => {
-          const newItem = {}
+          let newItem = {}
 
           for (const i in item) {
             if (typeof viewColumns[i] !== 'undefined') {
-              newItem[viewColumns[i]] = item[i]
+              // newItem[viewColumns[i]] = item[i]
+              newItem = makeObj(newItem, viewColumns[i], item[i])
             }
           }
 
@@ -110,9 +112,8 @@ class TenantsRepository {
 
         return next
       })
+      // Essa promise retorna os dados no padrão do sistema
       .then(next => {
-        // Essa promise retorna os dados no padrão do sistema
-
         const { start, length } = next.queryOptions
         const pages = Math.ceil(next.filteredCount / length)
         const currentPage = start / length + 1
@@ -169,11 +170,12 @@ class TenantsRepository {
       .then(data => {
         if (!data) return data
 
-        const newItem = {}
+        let newItem = {}
 
         for (const i in data) {
           if (typeof viewColumns[i] !== 'undefined') {
-            newItem[viewColumns[i]] = data[i]
+            // newItem[viewColumns[i]] = data[i]
+            newItem = makeObj(newItem, viewColumns[i], data[i])
           }
         }
 

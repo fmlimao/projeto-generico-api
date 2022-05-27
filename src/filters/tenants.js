@@ -2,28 +2,28 @@ const filters = require('../helpers/filters')
 // const moment = require('moment')
 
 function filterTenantId (filter, criterias, values) {
-  if (filter.tenantId !== undefined) {
-    const ids = filters.sanitizeArrayFilter(filter.tenantId, {
+  if (filter['tenant.id'] !== undefined) {
+    const ids = filters.sanitizeArrayFilter(filter['tenant.id'], {
       helpers: [item => String(item).trim()]
     })
 
     if (ids.length) {
-      criterias.push('t.tenant_id IN (:tenantId)')
-      values.tenantId = ids
+      criterias.push('t.tenant_id IN (:tenantUuid)')
+      values.tenantUuid = ids
     }
   }
 }
 
 function filterTenantName (filter, criterias, values) {
-  if (filter.tenantName !== undefined) {
+  if (filter['tenant.name'] !== undefined) {
     criterias.push('t.name LIKE :tenantName')
-    values.tenantName = `%${filter.tenantName}%`
+    values.tenantName = `%${filter['tenant.name']}%`
   }
 }
 
 function filterTenantActive (filter, criterias, values) {
-  if (filter.tenantActive !== undefined) {
-    const sanitizedValues = filters.sanitizeArrayFilter(filter.tenantActive, {
+  if (filter['tenant.active'] !== undefined) {
+    const sanitizedValues = filters.sanitizeArrayFilter(filter['tenant.active'], {
       helpers: [item => Number(item)]
     })
 
@@ -40,16 +40,30 @@ function filterTenantCreatedAt (filter, criterias, values) {
   //   filter.finalCreatedAt = moment().format('YYYY-MM-DD')
   // }
 
-  // Filtro de Data de Abertura Inicial
-  if (filter.tenantCreatedAtInitial !== undefined) {
+  // Filtro de Data Inicial
+  if (filter['tenant.createdAt.initial'] !== undefined) {
     criterias.push('DATE(t.created_at) >= :tenantCreatedAtInitial')
-    values.tenantCreatedAtInitial = filter.tenantCreatedAtInitial
+    values.tenantCreatedAtInitial = filter['tenant.createdAt.initial']
   }
 
-  // Filtro de Data de Abertura Final
-  if (filter.tenantCreatedAtFinal !== undefined) {
+  // Filtro de Data Final
+  if (filter['tenant.createdAt.final'] !== undefined) {
     criterias.push('DATE(t.created_at) <= :tenantCreatedAtFinal')
-    values.tenantCreatedAtFinal = filter.tenantCreatedAtFinal
+    values.tenantCreatedAtFinal = filter['tenant.createdAt.final']
+  }
+}
+
+function filterTenantAlteredAt (filter, criterias, values) {
+  // Filtro de Data Inicial
+  if (filter['tenant.alteredAt.initial'] !== undefined) {
+    criterias.push('DATE(t.altered_at) >= :tenantAlteredAtInitial')
+    values.tenantAlteredAtInitial = filter['tenant.alteredAt.initial']
+  }
+
+  // Filtro de Data Final
+  if (filter['tenant.alteredAt.final'] !== undefined) {
+    criterias.push('DATE(t.altered_at) <= :tenantAlteredAtFinal')
+    values.tenantAlteredAtFinal = filter['tenant.alteredAt.final']
   }
 }
 
@@ -71,6 +85,7 @@ module.exports = {
   filterTenantName,
   filterTenantActive,
   filterTenantCreatedAt,
+  filterTenantAlteredAt,
   filterSearch,
   orderByColumn: filters.orderByColumn,
   orderByDir: filters.orderByDir

@@ -60,6 +60,7 @@ CREATE TABLE `people` (
   `birth_date` date NULL,
   `cpf_cnpj` varchar(45) NULL,
   `rg_ie` varchar(45) NULL,
+  `active` tinyint(1) DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `altered_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `deleted_at` datetime DEFAULT NULL,
@@ -81,6 +82,7 @@ CREATE TABLE `person_emails` (
   `person_email_id` varchar(36) NOT NULL,
   `person_id` varchar(36) NOT NULL,
   `email` varchar(255) NOT NULL,
+  `active` tinyint(1) DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `altered_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `deleted_at` datetime DEFAULT NULL,
@@ -157,6 +159,20 @@ INNER JOIN tenants_users tu ON (t.tenant_id = tu.tenant_id AND tu.deleted_at IS 
 INNER JOIN users u ON (tu.user_id = u.user_id AND u.deleted_at IS NULL)
 INNER JOIN people p ON (u.person_id = p.person_id AND p.deleted_at IS NULL)
 INNER JOIN person_emails pe ON (p.person_id = pe.person_id AND u.person_email_id = pe.person_email_id AND pe.deleted_at IS NULL)
+WHERE t.deleted_at IS NULL;
+
+
+SELECT
+    p.person_id AS 'person.id',
+    p.name AS 'person.name',
+    p.birth_date AS 'person.birthDate',
+    p.cpf_cnpj AS 'person.cpfCnpj',
+    p.rg_ie AS 'person.rgIe',
+    p.active AS 'person.active',
+    p.created_at AS 'person.createdAt',
+    p.altered_at AS 'person.alteredAt'
+FROM tenants t
+INNER JOIN people p ON (t.tenant_id = p.tenant_id AND p.deleted_at IS NULL)
 WHERE t.deleted_at IS NULL;
 
 
