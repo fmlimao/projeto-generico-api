@@ -13,10 +13,24 @@ function filterUserId (filter, criterias, values) {
   }
 }
 
+function filterUserName (filter, criterias, values) {
+  if (filter['user.name'] !== undefined) {
+    criterias.push('u.name LIKE :userName')
+    values.userName = `%${filter['user.name']}%`
+  }
+}
+
 function filterUserEmail (filter, criterias, values) {
   if (filter['user.email'] !== undefined) {
-    criterias.push('pe.email LIKE :userEmail')
+    criterias.push('u.email LIKE :userEmail')
     values.userEmail = `%${filter['user.email']}%`
+  }
+}
+
+function filterUserCpf (filter, criterias, values) {
+  if (filter['user.cpf'] !== undefined) {
+    criterias.push('u.cpf LIKE :userCpf')
+    values.userCpf = `%${filter['user.cpf']}%`
   }
 }
 
@@ -61,33 +75,13 @@ function filterUserAlteredAt (filter, criterias, values) {
   }
 }
 
-function filterPersonId (filter, criterias, values) {
-  if (filter['person.id'] !== undefined) {
-    const ids = filters.sanitizeArrayFilter(filter['person.id'], {
-      helpers: [item => String(item).trim()]
-    })
-
-    if (ids.length) {
-      criterias.push('p.person_id IN (:personUuid)')
-      values.personUuid = ids
-    }
-  }
-}
-
-function filterPersonName (filter, criterias, values) {
-  if (filter['person.name'] !== undefined) {
-    criterias.push('p.name LIKE :personName')
-    values.personName = `%${filter['person.name']}%`
-  }
-}
-
 function filterSearch (search, criterias, values) {
   if (search.length) {
     criterias.push(`(
       u.user_id LIKE :search
-      OR p.person_id LIKE :search
-      OR p.name LIKE :search
-      OR pe.email LIKE :search
+      OR u.name LIKE :search
+      OR u.email LIKE :search
+      OR u.cpf LIKE :search
       OR u.active LIKE :search
       OR u.created_at LIKE :search
     )`)
@@ -97,9 +91,9 @@ function filterSearch (search, criterias, values) {
 
 module.exports = {
   filterUserId,
-  filterPersonId,
-  filterPersonName,
+  filterUserName,
   filterUserEmail,
+  filterUserCpf,
   filterUserActive,
   filterUserCreatedAt,
   filterUserAlteredAt,

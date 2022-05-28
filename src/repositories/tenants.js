@@ -326,7 +326,7 @@ class TenantsRepository {
               AND tenant_id != ?;
             `, [
             next.fields.name,
-            next.data.tenantId
+            next.data.tenant.id
           ])
 
           if (dataExists) {
@@ -344,8 +344,8 @@ class TenantsRepository {
       })
       // Essa promise coloca os novos campos no registro
       .then(next => {
-        if (typeof next.fields.name !== 'undefined') next.data.tenantName = next.fields.name
-        if (typeof next.fields.active !== 'undefined') next.data.tenantActive = Number(next.fields.active)
+        if (typeof next.fields.name !== 'undefined') next.data.tenant.name = next.fields.name
+        if (typeof next.fields.active !== 'undefined') next.data.tenant.active = Number(next.fields.active)
 
         return next
       })
@@ -358,12 +358,12 @@ class TenantsRepository {
           altered_at = NOW()
           WHERE tenant_id = ?;
         `, [
-          next.data.tenantName,
-          next.data.tenantActive,
-          next.data.tenantId
+          next.data.tenant.name,
+          next.data.tenant.active,
+          next.data.tenant.id
         ])
 
-        return this.findOneById(next.data.tenantId)
+        return this.findOneById(next.data.tenant.id)
       })
   }
 
@@ -375,7 +375,7 @@ class TenantsRepository {
           SET deleted_at = NOW()
           WHERE tenant_id = ?;
         `, [
-          findRet.content.data.tenantId
+          findRet.content.data.tenant.id
         ])
       })
   }

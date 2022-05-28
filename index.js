@@ -12,6 +12,7 @@ app.use(express.urlencoded({ extended: false }))
 // const getAuthMiddleware = require('./src/middlewares/get-auth')
 // const verifyAuthMiddleware = require('./src/middlewares/verify-auth')
 const getTenant = require('./src/middlewares/get-tenant')
+const getTenantUser = require('./src/middlewares/get-tenant-user')
 
 app.use(require('./src/middlewares/json-return'))
 
@@ -28,9 +29,10 @@ app.delete('/tenants/:tenantId', /* verifyAuthMiddleware,  */getTenant, require(
 
 // Inquilino - Usuários
 app.get('/tenants/:tenantId/users', /* verifyAuthMiddleware,  */getTenant, require('./src/controllers/tenants/users/list'))
-
-// Inquilino - Pessoas
-app.get('/tenants/:tenantId/people', /* verifyAuthMiddleware,  */getTenant, require('./src/controllers/tenants/people/list'))
+app.post('/tenants/:tenantId/users', /* verifyAuthMiddleware,  */getTenant, require('./src/controllers/tenants/users/store'))
+app.get('/tenants/:tenantId/users/:userId', /* verifyAuthMiddleware,  */getTenant, getTenantUser, require('./src/controllers/tenants/users/show'))
+app.put('/tenants/:tenantId/users/:userId', /* verifyAuthMiddleware,  */getTenant, getTenantUser, require('./src/controllers/tenants/users/update'))
+app.delete('/tenants/:tenantId/users/:userId', /* verifyAuthMiddleware,  */getTenant, getTenantUser, require('./src/controllers/tenants/users/remove'))
 
 app.use(require('./src/middlewares/error-404'))
 app.use(require('./src/middlewares/error-500'))
