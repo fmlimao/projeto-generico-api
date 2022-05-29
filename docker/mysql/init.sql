@@ -86,6 +86,19 @@ FROM tenants t
 INNER JOIN people p ON (t.tenant_id = p.tenant_id AND p.deleted_at IS NULL)
 WHERE t.deleted_at IS NULL;
 
+SELECT
+    u.user_id AS userId,
+    u.name AS userName,
+    u.email AS userEmail,
+    u.cpf AS userCpf,
+    t.tenant_id AS tenantId,
+    t.name AS tenantName
+FROM users u
+INNER JOIN tenants t ON (u.tenant_id = t.tenant_id AND t.deleted_at IS NULL)
+WHERE u.deleted_at IS NULL
+AND u.active = 1
+AND u.user_id = '3e594f32-dde3-11ec-b0c1-0242acf00c02';
+
 
 # SELECT
 # u.user_id AS userId,

@@ -1,6 +1,8 @@
+const bcrypt = require('bcrypt')
 const db = require('../database/conn')
 const filters = require('../filters/tenant-users')
 const generateOptions = require('../helpers/generate-options')
+const jwt = require('jsonwebtoken')
 const makeObj = require('../helpers/make-obj')
 const JsonReturn = require('fm-json-response')
 const validator = require('fm-validator')
@@ -489,6 +491,158 @@ class TenantUsersRepository {
         `, [
           findRet.content.data.user.id
         ])
+      })
+  }
+
+  static auth (email, password) {
+    return new Promise((resolve, reject) => {
+      const ret = new JsonReturn()
+
+      ret.addFields(['email', 'password'])
+
+      if (!validator(ret, {
+        email,
+        password
+      }, {
+        email: 'required|string|email|max:128',
+        password: 'required|string|max:32'
+      })) {
+        ret.setError(true)
+        ret.setCode(400)
+        ret.addMessage('Verifique todos os campos.')
+        return reject(ret)
+      }
+
+      const next = {
+        fields: {
+          email,
+          password
+        },
+        ret
+      }
+
+      resolve(next)
+    })
+      // Essa promise verifica se já existe um usuário com este email
+      .then(async next => {
+        const dataExists = await db.getOne(`
+          SELECT user_id, password
+          FROM users
+          WHERE deleted_at IS NULL
+          AND active = 1
+          AND email = ?;
+        `, [
+          next.fields.email
+        ])
+
+        if (!dataExists) {
+          next.ret.setError(true)
+          next.ret.setCode(404)
+          next.ret.addMessage('Usuário não encontrado.')
+
+          throw next.ret
+        }
+
+        next.data = dataExists
+
+        return next
+      })
+      // Essa promise verifica a senha do usuário
+      .then(async next => {
+        const passwordVerify = bcrypt.compareSync(password, next.data.password)
+
+        if (!passwordVerify) {
+          next.ret.setError(true)
+          next.ret.setCode(404)
+          next.ret.addMessage('Usuário não encontrado.')
+
+          throw next.ret
+        }
+
+        return next
+      })
+      // Essa promise gera o token
+      .then(next => {
+        const ret = new JsonReturn()
+
+        const tokenObj = {
+          hash: next.data.user_id
+        }
+
+        const exp = Number(process.env.TOKEN_EXPIRATION_SEC || 0)
+        if (exp) {
+          tokenObj.exp = Math.floor(Date.now() / 1000) + exp
+        }
+
+        const key = process.env.TOKEN_SECRET || ''
+        const token = jwt.sign(tokenObj, key)
+
+        ret.addContent('token', token)
+
+        return ret.generate()
+      })
+  }
+
+  static verifyAuth (accessToken) {
+    return new Promise((resolve, reject) => {
+      const ret = new JsonReturn()
+
+      if (!accessToken) {
+        ret.setError(true)
+        ret.setCode(401)
+        ret.addMessage('Token inválido.')
+        return reject(ret)
+      }
+
+      const next = {
+        accessToken,
+        ret
+      }
+
+      resolve(next)
+    })
+      // Essa promise verifica se o token é um jwt válido e decoda ele
+      .then(async next => {
+        const key = process.env.TOKEN_SECRET || ''
+
+        try {
+          const decodedToken = jwt.verify(next.accessToken, key)
+
+          next.hash = decodedToken.hash
+
+          return next
+        } catch (error) {
+          next.ret.setError(true)
+          next.ret.setCode(401)
+          next.ret.addMessage('Token inválido.')
+
+          throw next.ret
+        }
+      })
+      // Essa promise verifica se o usuário existe
+      .then(async next => {
+        const dataExists = await db.getOne(`
+          SELECT u.user_id, t.tenant_id
+          FROM users u
+          INNER JOIN tenants t ON (u.tenant_id = t.tenant_id AND t.deleted_at IS NULL)
+          WHERE u.deleted_at IS NULL
+          AND u.active = 1
+          AND u.user_id = ?;
+        `, [
+          next.hash
+        ])
+
+        if (!dataExists) {
+          next.ret.setError(true)
+          next.ret.setCode(401)
+          next.ret.addMessage('Token inválido.')
+
+          throw next.ret
+        }
+
+        next.data = dataExists
+
+        return this.findOneById(dataExists.tenant_id, dataExists.user_id)
       })
   }
 }

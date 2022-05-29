@@ -10,7 +10,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 
 // const getAuthMiddleware = require('./src/middlewares/get-auth')
-// const verifyAuthMiddleware = require('./src/middlewares/verify-auth')
+const verifyAuthMiddleware = require('./src/middlewares/verify-auth')
 const getTenant = require('./src/middlewares/get-tenant')
 const getTenantUser = require('./src/middlewares/get-tenant-user')
 
@@ -19,6 +19,11 @@ app.use(require('./src/middlewares/json-return'))
 // app.use(getAuthMiddleware)
 
 app.get('/', /* verifyAuthMiddleware,  */require('./src/controllers/home/get'))
+
+// Rota de autenticação
+app.post('/auth', require('./src/controllers/auth/auth'))
+
+app.use(verifyAuthMiddleware)
 
 // Inquilinos
 app.get('/tenants', /* verifyAuthMiddleware,  */require('./src/controllers/tenants/list'))
