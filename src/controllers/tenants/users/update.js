@@ -5,9 +5,9 @@ module.exports = async (req, res) => {
 
   try {
     const { tenantId, userId } = req.params
-    const { name, email, cpf, active } = req.body
+    const { name, cpf, email, password, active } = req.body
 
-    const user = await TenantUsersRepository.update(tenantId, userId, { name, email, cpf, active })
+    const user = await TenantUsersRepository.update(tenantId, userId, { name, cpf, email, password, active })
 
     ret.addContent('data', user.content.data)
     res.status(ret.getCode()).json(ret.generate())

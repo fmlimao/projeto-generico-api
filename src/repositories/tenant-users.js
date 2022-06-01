@@ -10,8 +10,8 @@ const validator = require('fm-validator')
 const orderColumns = {
   'user.id': 'u.user_id',
   'user.name': 'u.name',
-  'user.email': 'u.email',
   'user.cpf': 'u.cpf',
+  'user.email': 'u.email',
   'user.active': 'u.active',
   'user.createdAt': 't.created_at',
   'user.alteredAt': 't.altered_at'
@@ -20,8 +20,9 @@ const orderColumns = {
 const viewColumns = {
   userId: 'user.id',
   userName: 'user.name',
-  userEmail: 'user.email',
   userCpf: 'user.cpf',
+  userEmail: 'user.email',
+  userPassword: 'user.password',
   userActive: 'user.active',
   userCreatedAt: 'user.createdAt',
   userAlteredAt: 'user.alteredAt'
@@ -103,8 +104,8 @@ class TenantUsersRepository {
           SELECT
             u.user_id AS userId,
             u.name AS userName,
-            u.email AS userEmail,
             u.cpf AS userCpf,
+            u.email AS userEmail,
             u.active AS userActive,
             u.created_at AS userCreatedAt,
             u.altered_at AS userAlteredAt
@@ -171,7 +172,9 @@ class TenantUsersRepository {
       })
   }
 
-  static async findOneById (tenantId, userId) {
+  static async findOneById (tenantId, userId, options = {
+    withPassword: true
+  }) {
     // Essa promise recupera o registro
     return new Promise((resolve, reject) => {
       (async () => {
@@ -179,8 +182,9 @@ class TenantUsersRepository {
           SELECT
             u.user_id AS userId,
             u.name AS userName,
-            u.email AS userEmail,
             u.cpf AS userCpf,
+            u.email AS userEmail,
+            ${options.withPassword ? 'u.password AS userPassword, ' : ''}
             u.active AS userActive,
             u.created_at AS userCreatedAt,
             u.altered_at AS userAlteredAt
@@ -231,18 +235,20 @@ class TenantUsersRepository {
     return new Promise((resolve, reject) => {
       const ret = new JsonReturn()
 
-      ret.addFields(['name', 'email', 'cpf'])
+      ret.addFields(['name', 'cpf', 'email', 'password'])
 
-      const { name, email, cpf } = fields
+      const { name, cpf, email, password } = fields
 
       if (!validator(ret, {
         name,
+        cpf,
         email,
-        cpf
+        password
       }, {
         name: 'required|string|min:3|max:255',
+        cpf: 'string|size:11',
         email: 'required|email|min:3|max:255',
-        cpf: 'string|size:11'
+        password: 'required|string|min:6|max:32'
       })) {
         ret.setError(true)
         ret.setCode(400)
@@ -253,8 +259,9 @@ class TenantUsersRepository {
       const next = {
         fields: {
           name,
+          cpf,
           email,
-          cpf
+          password
         },
         ret
       }
@@ -271,6 +278,8 @@ class TenantUsersRepository {
         `, [
           next.fields.email
         ])
+
+        /**/console.log('dataExists', dataExists)
 
         if (dataExists) {
           next.ret.setFieldError('email', true, 'Já existe um usuário com este e-mail.')
@@ -297,7 +306,7 @@ class TenantUsersRepository {
           ])
 
           if (dataExists) {
-            next.ret.setFieldError('cpf', true, 'Já existe um usuário com este e-mail.')
+            next.ret.setFieldError('cpf', true, 'Já existe um usuário com este CPF.')
 
             next.ret.setError(true)
             next.ret.setCode(400)
@@ -309,19 +318,26 @@ class TenantUsersRepository {
 
         return next
       })
+      // Essa promise criptografa a senha
+      .then(async next => {
+        next.fields.password = await bcrypt.hashSync(next.fields.password, 10)
+
+        return next
+      })
       // Essa promise cria o registro e retorna sua estancia
       .then(async next => {
         next.fields.user_id = await db.uuid()
 
         await db.insert(`
-          INSERT INTO users (user_id, tenant_id, name, email, cpf, created_at)
-          VALUES (?, ?, ?, ?, ?, NOW());
+          INSERT INTO users (user_id, tenant_id, name, cpf, email, password, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, NOW());
         `, [
           next.fields.user_id,
           tenantId,
           next.fields.name,
+          next.fields.cpf,
           next.fields.email,
-          next.fields.cpf
+          next.fields.password
         ])
 
         return this.findOneById(tenantId, next.fields.user_id)
@@ -329,14 +345,16 @@ class TenantUsersRepository {
   }
 
   static async update (tenantId, userId, fields) {
-    return this.findOneById(tenantId, userId)
+    return this.findOneById(tenantId, userId, {
+      withPassword: true
+    })
       // Essa promise verifica os campos informados
       .then(async findRet => {
         const data = findRet.content.data
 
         const ret = new JsonReturn()
 
-        const { name, email, cpf, active } = fields
+        const { name, cpf, email, password, active } = fields
         let fieldCount = 0
         const updateFields = {}
         const updateValidades = {}
@@ -348,6 +366,13 @@ class TenantUsersRepository {
           updateValidades.name = 'required|string|min:3|max:255'
         }
 
+        if (cpf !== undefined) {
+          ret.addField('cpf')
+          fieldCount++
+          updateFields.cpf = cpf
+          updateValidades.cpf = 'required|string|size:11'
+        }
+
         if (email !== undefined) {
           ret.addField('email')
           fieldCount++
@@ -355,11 +380,11 @@ class TenantUsersRepository {
           updateValidades.email = 'required|email|min:3|max:255'
         }
 
-        if (cpf !== undefined) {
-          ret.addField('cpf')
+        if (password !== undefined) {
+          ret.addField('password')
           fieldCount++
-          updateFields.cpf = cpf
-          updateValidades.cpf = 'required|string|size:11'
+          updateFields.password = password
+          updateValidades.password = 'required|string|min:6|max:32'
         }
 
         if (active !== undefined) {
@@ -386,8 +411,9 @@ class TenantUsersRepository {
         const next = {
           fields: {
             name,
-            email,
             cpf,
+            email,
+            password,
             active
           },
           data,
@@ -450,11 +476,20 @@ class TenantUsersRepository {
 
         return next
       })
+      // Essa promise criptografa a senha
+      .then(async next => {
+        if (next.fields.password !== undefined) {
+          next.fields.password = await bcrypt.hashSync(next.fields.password, 10)
+        }
+
+        return next
+      })
       // Essa promise coloca os novos campos no registro
       .then(next => {
         if (typeof next.fields.name !== 'undefined') next.data.user.name = next.fields.name
-        if (typeof next.fields.email !== 'undefined') next.data.user.email = next.fields.email
         if (typeof next.fields.cpf !== 'undefined') next.data.user.cpf = next.fields.cpf
+        if (typeof next.fields.email !== 'undefined') next.data.user.email = next.fields.email
+        if (typeof next.fields.password !== 'undefined') next.data.user.password = next.fields.password
         if (typeof next.fields.active !== 'undefined') next.data.user.active = Number(next.fields.active)
 
         return next
@@ -464,15 +499,17 @@ class TenantUsersRepository {
         await db.update(`
           UPDATE users
           SET name = ?,
-          email = ?,
           cpf = ?,
+          email = ?,
+          password = ?,
           active = ?,
           altered_at = NOW()
           WHERE user_id = ?;
         `, [
           next.data.user.name,
-          next.data.user.email,
           next.data.user.cpf,
+          next.data.user.email,
+          next.data.user.password,
           next.data.user.active,
           next.data.user.id
         ])
@@ -495,6 +532,9 @@ class TenantUsersRepository {
   }
 
   static auth (email, password) {
+    // const hash = bcrypt.hashSync('123456', 10)
+    // /**/console.log('hash', hash)
+
     return new Promise((resolve, reject) => {
       const ret = new JsonReturn()
 
